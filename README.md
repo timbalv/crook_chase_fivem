@@ -22,12 +22,37 @@ Use the `/join` command in chat to pick your role:
 - You cannot switch roles once you have joined.
 - The chase begins automatically once the lobby has **1 crook** and **at least 1 cop**. All players receive a chat notification when this happens.
 
+### Ending the Chase
+
+Any player (or the server console) can run:
+
+```
+/endchase
+```
+
+This immediately:
+- Clears the `activePlayers` table on the server.
+- Removes the crook blip from every cop's map.
+- Deletes every player's spawned vehicle.
+- Resets every client's role back to `nil` so a new lobby can form.
+
 ### Roles
 
 | Role | Objective |
 |------|-----------|
 | **Crook** | Escape the cops. Stay in a vehicle and keep moving. |
 | **Cop** | Track down the crook using the map blip and get close enough to bust them. |
+
+### Vehicle Spawning
+
+When the lobby fills and the chase begins, each player automatically receives a vehicle:
+
+| Role | Vehicle | Model |
+|------|---------|-------|
+| **Cop** | Police Interceptor | `police3` |
+| **Crook** | Zentorno | `zentorno` |
+
+The player is placed in the driver seat immediately. Vehicles are cleaned up when `/endchase` is used or a new round starts.
 
 ### Map Blip (Pursuit Tracking)
 
@@ -61,6 +86,17 @@ If the timer reaches zero uninterrupted, the cop's client fires `crookChase:bust
 [CrookChase] PlayerA busted PlayerB! The chase is over.
 ```
 
+### Distance HUD (Cops Only)
+
+Cops see a floating 3D text element near their character that displays the live distance to the crook in meters (e.g. `Crook: 42.3 m`). This is rendered every frame using a `DrawText3D` helper with `SetDrawOrigin` so it stays anchored in world space, offset slightly in front of and above the cop's ped. The HUD only appears while the cop has an active role and the crook's ped is streamed in.
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `/join [cop\|crook]` | Join the lobby with the chosen role. |
+| `/endchase` | End the current chase and reset the lobby. |
+
 ## Events Reference
 
 ### Server Events
@@ -79,6 +115,7 @@ If the timer reaches zero uninterrupted, the cop's client fires `crookChase:bust
 | `crookChase:lobbyFull` | All players (`-1`) | Notifies everyone the chase is starting. |
 | `crookChase:crookPosition` | Individual cops | Delivers crook coordinates for blip rendering. |
 | `crookChase:removeBlip` | All players (`-1`) | Tells clients to clean up the crook blip. |
+| `crookChase:resetChase` | All players (`-1`) | Full client reset: removes blip, deletes vehicle, clears role. |
 | `crookChase:notify` | Target player or all (`-1`) | Sends a `[CrookChase]` chat message. |
 
 ## File Structure
@@ -86,8 +123,8 @@ If the timer reaches zero uninterrupted, the cop's client fires `crookChase:bust
 ```
 crook_chase_fivem/
 ├── fxmanifest.lua   -- Resource manifest (cerulean, gta5)
-├── client.lua       -- Role state, bust loop, blip rendering
-├── server.lua       -- Lobby management, position relay, bust validation
+├── client.lua       -- Role state, vehicle spawn, bust loop, blip rendering, distance HUD
+├── server.lua       -- Lobby management, /endchase, position relay, bust validation
 └── README.md
 ```
 
