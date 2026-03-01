@@ -49,6 +49,11 @@ AddEventHandler('crookChase:joinLobby', function(role)
     TriggerClientEvent('crookChase:notify', src, 'You joined the lobby as a ' .. role .. '.')
 
     if isLobbyFull() then
+        local roles = {}
+        for id, data in pairs(activePlayers) do
+            roles[id] = data.role
+        end
+        TriggerClientEvent('crookChase:syncRoles', -1, roles)
         TriggerClientEvent('crookChase:lobbyFull', -1)
     end
 end)
@@ -69,6 +74,25 @@ RegisterCommand('join', function(source, args)
     role = string.lower(role)
     TriggerEvent('crookChase:joinLobby', role)
 end, false)
+
+RegisterNetEvent('crookChase:bustSuccess')
+AddEventHandler('crookChase:bustSuccess', function(crookServerId)
+    local src = source
+
+    if not activePlayers[src] or activePlayers[src].role ~= 'cop' then
+        return
+    end
+
+    if not activePlayers[crookServerId] or activePlayers[crookServerId].role ~= 'crook' then
+        return
+    end
+
+    local copName = GetPlayerName(src)
+    local crookName = GetPlayerName(crookServerId)
+    local msg = ('%s busted %s! The chase is over.'):format(copName, crookName)
+    print('[CrookChase] ' .. msg)
+    TriggerClientEvent('crookChase:notify', -1, msg)
+end)
 
 AddEventHandler('playerDropped', function()
     local src = source
