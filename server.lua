@@ -75,6 +75,23 @@ RegisterCommand('join', function(source, args)
     TriggerEvent('crookChase:joinLobby', role)
 end, false)
 
+-- ================================================================
+-- /endchase – reset the entire lobby
+-- ================================================================
+
+RegisterCommand('endchase', function(source)
+    if source == 0 then
+        print('[CrookChase] Chase ended by server console.')
+    else
+        local playerName = GetPlayerName(source)
+        print(('[CrookChase] Chase ended by %s (ID: %d).'):format(playerName, source))
+    end
+
+    activePlayers = {}
+    TriggerClientEvent('crookChase:resetChase', -1)
+    TriggerClientEvent('crookChase:notify', -1, 'The chase has been ended. Lobby reset.')
+end, false)
+
 RegisterNetEvent('crookChase:bustSuccess')
 AddEventHandler('crookChase:bustSuccess', function(crookServerId)
     local src = source

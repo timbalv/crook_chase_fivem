@@ -2,6 +2,7 @@ local myRole = nil
 local lobbyRoles = {}
 local bustInProgress = false
 local crookBlip = nil
+local spawnedVehicle = nil
 
 -- ============================================================
 -- Event handlers
@@ -28,6 +29,7 @@ AddEventHandler('crookChase:lobbyFull', function()
         color = { 0, 255, 0 },
         args = { '[CrookChase]', 'The lobby is full! The chase is about to begin!' }
     })
+    spawnRoleVehicle()
 end)
 
 -- ============================================================
@@ -49,6 +51,42 @@ local function getPlayerPedByServerId(serverId)
         return nil
     end
     return GetPlayerPed(playerId)
+end
+
+-- ============================================================
+-- Vehicle spawning
+-- ============================================================
+
+local function spawnRoleVehicle()
+    if not myRole then return end
+
+    local modelName = (myRole == 'crook') and 'zentorno' or 'police3'
+    local modelHash = GetHashKey(modelName)
+
+    RequestModel(modelHash)
+    while not HasModelLoaded(modelHash) do
+        Citizen.Wait(100)
+    end
+
+    local ped = PlayerPedId()
+    local coords = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+
+    spawnedVehicle = CreateVehicle(modelHash, coords.x, coords.y, coords.z, heading, true, false)
+    SetPedIntoVehicle(ped, spawnedVehicle, -1)
+    SetModelAsNoLongerNeeded(modelHash)
+
+    TriggerEvent('chat:addMessage', {
+        color = { 100, 200, 255 },
+        args = { '[CrookChase]', 'Your ' .. modelName .. ' has been spawned.' }
+    })
+end
+
+local function deleteSpawnedVehicle()
+    if spawnedVehicle and DoesEntityExist(spawnedVehicle) then
+        DeleteVehicle(spawnedVehicle)
+        spawnedVehicle = nil
+    end
 end
 
 -- ============================================================
@@ -195,4 +233,66 @@ end)
 RegisterNetEvent('crookChase:removeBlip')
 AddEventHandler('crookChase:removeBlip', function()
     removeCrookBlip()
+end)
+
+-- ============================================================
+-- Chase reset – server sends this on /endchase
+-- ============================================================
+
+RegisterNetEvent('crookChase:resetChase')
+AddEventHandler('crookChase:resetChase', function()
+    removeCrookBlip()
+    deleteSpawnedVehicle()
+    myRole = nil
+    lobbyRoles = {}
+    bustInProgress = false
+end)
+
+-- ============================================================
+-- DrawText3D – floating distance HUD for cops
+-- ============================================================
+
+local function DrawText3D(x, y, z, text)
+    SetTextScale(0.35, 0.35)
+    SetTextFont(4)
+    SetTextProportional(true)
+    SetTextColour(255, 255, 255, 215)
+    SetTextEntry('STRING')
+    SetTextCentre(true)
+    AddTextComponentString(text)
+    SetDrawOrigin(x, y, z, 0)
+    DrawText(0.0, 0.0)
+    local factor = string.len(text) / 370
+    DrawRect(0.0, 0.0 + 0.0125, 0.017 + factor, 0.03, 0, 0, 0, 120)
+    ClearDrawOrigin()
+end
+
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+
+        if myRole ~= 'cop' then
+            goto continue
+        end
+
+        local crookServerId = getCrookServerId()
+        if not crookServerId then
+            goto continue
+        end
+
+        local crookPed = getPlayerPedByServerId(crookServerId)
+        if not crookPed or not DoesEntityExist(crookPed) then
+            goto continue
+        end
+
+        local myPed = PlayerPedId()
+        local myCoords = GetEntityCoords(myPed)
+        local crookCoords = GetEntityCoords(crookPed)
+        local dist = #(myCoords - crookCoords)
+
+        local hudPos = GetOffsetFromEntityInWorldCoords(myPed, 0.0, 1.0, 0.8)
+        DrawText3D(hudPos.x, hudPos.y, hudPos.z, ('~y~Crook: ~w~%.1f m'):format(dist))
+
+        ::continue::
+    end
 end)
