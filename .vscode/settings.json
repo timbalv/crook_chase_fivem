@@ -1,0 +1,22 @@
+{
+    "Lua.runtime.version": "LuaJIT",
+    "Lua.runtime.special": {
+        "GetHashKey": "Immune",
+        "TriggerEvent": "Immune",
+        "TriggerServerEvent": "Immune",
+        "TriggerClientEvent": "Immune"
+    },
+    "Lua.diagnostics.globals": [
+        "vector3", "vector4", "quat", "Citizen", "Keys", "_U"
+    ],
+    "Lua.workspace.library": [
+        "$(USERPROFILE)/.vscode/extensions/overextended.cfxlua-vscode-*"
+    ],
+    "Lua.workspace.checkThirdParty": false,
+    "Lua.diagnostics.disable": [
+        "lowercase-global",
+        "undefined-global"
+    ],
+    "Lua.hint.enable": true,
+    "Lua.hint.setType": true
+}
