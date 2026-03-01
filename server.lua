@@ -92,6 +92,26 @@ AddEventHandler('crookChase:bustSuccess', function(crookServerId)
     local msg = ('%s busted %s! The chase is over.'):format(copName, crookName)
     print('[CrookChase] ' .. msg)
     TriggerClientEvent('crookChase:notify', -1, msg)
+    TriggerClientEvent('crookChase:removeBlip', -1)
+end)
+
+-- ================================================================
+-- Blip sync – relay crook position to all cops
+-- ================================================================
+
+RegisterNetEvent('crookChase:updateCrookPos')
+AddEventHandler('crookChase:updateCrookPos', function(x, y, z)
+    local src = source
+
+    if not activePlayers[src] or activePlayers[src].role ~= 'crook' then
+        return
+    end
+
+    for id, data in pairs(activePlayers) do
+        if data.role == 'cop' then
+            TriggerClientEvent('crookChase:crookPosition', id, x, y, z)
+        end
+    end
 end)
 
 AddEventHandler('playerDropped', function()

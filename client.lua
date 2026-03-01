@@ -1,6 +1,7 @@
 local myRole = nil
 local lobbyRoles = {}
 local bustInProgress = false
+local crookBlip = nil
 
 -- ============================================================
 -- Event handlers
@@ -138,4 +139,60 @@ Citizen.CreateThread(function()
 
         ::continue::
     end
+end)
+
+-- ============================================================
+-- Blip sync – crook broadcasts position to server every 1000ms
+-- ============================================================
+
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(1000)
+
+        if myRole ~= 'crook' then
+            goto continue
+        end
+
+        local myPed = PlayerPedId()
+        local coords = GetEntityCoords(myPed)
+        TriggerServerEvent('crookChase:updateCrookPos', coords.x, coords.y, coords.z)
+
+        ::continue::
+    end
+end)
+
+-- ============================================================
+-- Blip sync – cop receives crook position and renders map blip
+-- ============================================================
+
+local function removeCrookBlip()
+    if crookBlip and DoesBlipExist(crookBlip) then
+        RemoveBlip(crookBlip)
+        crookBlip = nil
+    end
+end
+
+RegisterNetEvent('crookChase:crookPosition')
+AddEventHandler('crookChase:crookPosition', function(x, y, z)
+    if myRole ~= 'cop' then
+        return
+    end
+
+    if crookBlip and DoesBlipExist(crookBlip) then
+        SetBlipCoords(crookBlip, x, y, z)
+    else
+        crookBlip = AddBlipForCoord(x, y, z)
+        SetBlipSprite(crookBlip, 161)
+        SetBlipColour(crookBlip, 1)
+        SetBlipScale(crookBlip, 1.2)
+        SetBlipAsShortRange(crookBlip, false)
+        BeginTextCommandSetBlipName('STRING')
+        AddTextComponentSubstringPlayerName('Crook')
+        EndTextCommandSetBlipName(crookBlip)
+    end
+end)
+
+RegisterNetEvent('crookChase:removeBlip')
+AddEventHandler('crookChase:removeBlip', function()
+    removeCrookBlip()
 end)
