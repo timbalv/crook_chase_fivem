@@ -1,11 +1,5 @@
 {
     "Lua.runtime.version": "LuaJIT",
-    "Lua.runtime.special": {
-        "GetHashKey": "Immune",
-        "TriggerEvent": "Immune",
-        "TriggerServerEvent": "Immune",
-        "TriggerClientEvent": "Immune"
-    },
     "Lua.diagnostics.globals": [
         "vector3", "vector4", "quat", "Citizen", "Keys", "_U"
     ],
