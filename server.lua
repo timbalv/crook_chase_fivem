@@ -27,45 +27,48 @@ RegisterNetEvent('crookChase:joinLobby')
 AddEventHandler('crookChase:joinLobby', function(role)
     local src = source
 
-    --starting phase, checking for players
-    local roleName = (role == 'crook') or (role == 'cop')
-    TriggerClientEvent('crookChase:notify', src, 'Successfully joined as a ' .. roleName .. '. Waiting for other players to join')
-
-    if isLobbyFull() then
-        TriggerClientEvent('crookChase:lobbyFull', -1)
-        TriggerClientEvent('crookChase:syncRoles', -1, activePlayers)
-    else
-        print(('[CrookChase] %s vár a többiekre (Jelenlegi létszám: %d/2)'):format(GetPlayerName(src), getCopCount() + (hasCrook() and 1 or 0)))
-    end
-
+    -- 1. Ellenőrzések: Érvényes-e a szerepkör?
     if role ~= 'cop' and role ~= 'crook' then
-        TriggerClientEvent('crookChase:notify', src, 'Invalid role. Choose "cop" or "crook".')
+        TriggerClientEvent('crookChase:notify', src, 'Érvénytelen szerepkör! Használd: /join [cop|crook]')
         return
     end
 
+    -- 2. Ellenőrzés: Benne van-e már a lobbyban?
     if activePlayers[src] then
-        TriggerClientEvent('crookChase:notify', src, 'You are already in the lobby as a ' .. activePlayers[src].role .. '.')
+        TriggerClientEvent('crookChase:notify', src, 'Már tagja vagy a lobby-nak mint ' .. activePlayers[src].role .. '!')
         return
     end
 
+    -- 3. Ellenőrzés: Van-e már bűnöző?
     if role == 'crook' and hasCrook() then
-        TriggerClientEvent('crookChase:notify', src, 'A crook already exists in the lobby. Choose "cop" instead.')
+        TriggerClientEvent('crookChase:notify', src, 'Már van bűnöző a lobby-ban! Válassz a rendőrök közé.')
         return
     end
 
+    -- 4. Tényleges mentés a listába
     activePlayers[src] = { role = role }
 
-    local playerName = GetPlayerName(src)
-    print(('[CrookChase] %s (ID: %d) joined the lobby as %s'):format(playerName, src, role))
-    TriggerClientEvent('crookChase:notify', src, 'You joined the lobby as a ' .. role .. '.')
+    -- 5. AZONNALI VISSZAJELZÉS (Hogy ne legyen csendes)
+    local roleNameText = (role == 'crook') and "Bűnöző" or "Rendőr"
+    TriggerClientEvent('crookChase:notify', src, 'Sikeresen csatlakoztál mint ' .. roleNameText .. '.')
 
+    -- 6. Lobby állapot ellenőrzése és indítás
     if isLobbyFull() then
+        -- Ha ketten vagytok, indul a menet
         local roles = {}
         for id, data in pairs(activePlayers) do
             roles[id] = data.role
         end
         TriggerClientEvent('crookChase:syncRoles', -1, roles)
         TriggerClientEvent('crookChase:lobbyFull', -1)
+    else
+        -- Ha egyedül vagy, jelezzük, kire várunk
+        if role == 'crook' then
+            TriggerClientEvent('crookChase:notify', src, 'Várakozás legalább egy rendőrre az induláshoz...')
+        else
+            TriggerClientEvent('crookChase:notify', src, 'Várakozás egy bűnözőre az induláshoz...')
+        end
+        print(('[CrookChase] %s várakozik. Jelenlegi létszám: %d/2'):format(GetPlayerName(src), getCopCount() + (hasCrook() and 1 or 0)))
     end
 end)
 
