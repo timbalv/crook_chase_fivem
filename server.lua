@@ -27,6 +27,17 @@ RegisterNetEvent('crookChase:joinLobby')
 AddEventHandler('crookChase:joinLobby', function(role)
     local src = source
 
+    --starting phase, checking for players
+    local roleName = (role == 'crook') or (role == 'cop')
+    TriggerClientEvent('crookChase:notify', src, 'Successfully joined as a ' .. roleName .. '. Waiting for other players to join')
+
+    if isLobbyFull() then
+        TriggerClientEvent('crookChase:lobbyFull', -1)
+        TriggerClientEvent('crookChase:syncRoles', -1, activePlayers)
+    else
+        print(('[CrookChase] %s vár a többiekre (Jelenlegi létszám: %d/2)'):format(GetPlayerName(src), getCopCount() + (hasCrook() and 1 or 0)))
+    end
+
     if role ~= 'cop' and role ~= 'crook' then
         TriggerClientEvent('crookChase:notify', src, 'Invalid role. Choose "cop" or "crook".')
         return
@@ -74,6 +85,7 @@ RegisterCommand('join', function(source, args)
     role = string.lower(role)
     TriggerEvent('crookChase:joinLobby', role)
 end, false)
+
 
 -- ================================================================
 -- /endchase – reset the entire lobby
